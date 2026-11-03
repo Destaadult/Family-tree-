@@ -485,37 +485,41 @@ button {
   font-size: 13px;
 }
 
-/* Family tree */
+
+/* =====================================
+   FAMILY TREE - VERTICAL RELATIONSHIPS
+===================================== */
 
 .tree-container {
   overflow-x: auto;
-  padding: 25px 5px;
-  min-height: 180px;
+  padding: 35px 15px;
+  min-height: 250px;
+  text-align: center;
 }
 
 .tree-generation {
   display: flex;
   justify-content: center;
-  gap: 18px;
+  align-items: flex-start;
+  gap: 30px;
   min-width: max-content;
   padding: 15px;
-  position: relative;
 }
 
 .tree-member {
-  width: 175px;
+  width: 190px;
   background: #f8fafc;
   border: 1px solid #dbeafe;
   border-top: 4px solid var(--primary);
-  border-radius: 10px;
-  padding: 13px;
+  border-radius: 12px;
+  padding: 15px;
   text-align: center;
+  box-shadow: var(--shadow);
 }
 
 .tree-member strong {
   display: block;
-  font-size: 13px;
-  overflow-wrap: anywhere;
+  font-size: 14px;
 }
 
 .tree-member span {
@@ -526,15 +530,80 @@ button {
 }
 
 .tree-member .tree-avatar {
-  font-size: 25px;
+  font-size: 27px;
   margin-bottom: 5px;
 }
 
-.tree-connector {
-  text-align: center;
-  color: #94a3b8;
-  font-size: 18px;
+/* Vertical family relationship */
+
+.family-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 200px;
 }
+
+.family-couple {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.family-line {
+  width: 2px;
+  height: 35px;
+  background: #94a3b8;
+}
+
+.children-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.children-horizontal {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 25px;
+  border-top: 2px solid #94a3b8;
+  padding-top: 20px;
+}
+
+.child-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.child-branch .family-line {
+  height: 30px;
+}
+
+.grandchild-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tree-generation-label {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 500px) {
+  .tree-member {
+    width: 155px;
+  }
+
+  .children-horizontal {
+    gap: 12px;
+  }
+}
+
 
 /* Timeline */
 

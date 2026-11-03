@@ -782,3 +782,134 @@ button {
     flex-direction: column;
   }
 }
+
+
+/* =====================================
+   FAMILY TREE GRAPH - VISUAL CONNECTIONS
+===================================== */
+
+.tree-container {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 35px 20px;
+  min-height: 300px;
+}
+
+.family-tree-graph {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 45px;
+  width: max-content;
+  min-width: 100%;
+  padding: 20px;
+}
+
+.family-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 220px;
+}
+
+.family-couple {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: nowrap;
+}
+
+.tree-member {
+  flex: 0 0 170px;
+  width: 170px;
+  background: #f8fafc;
+  border: 1px solid #dbeafe;
+  border-top: 4px solid #2563eb;
+  border-radius: 12px;
+  padding: 15px 10px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.tree-member strong {
+  display: block;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.tree-member span {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 5px;
+}
+
+.tree-avatar {
+  font-size: 27px;
+}
+
+.family-line {
+  width: 2px;
+  height: 35px;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+
+.children-horizontal {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 25px;
+  border-top: 2px solid #94a3b8;
+  padding-top: 20px;
+  position: relative;
+  width: max-content;
+}
+
+.child-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.child-branch::before {
+  content: "";
+  width: 2px;
+  height: 20px;
+  background: #94a3b8;
+  position: absolute;
+  top: -20px;
+}
+
+.child-branch .family-line {
+  height: 25px;
+}
+
+.unconnected-family {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px dashed #94a3b8;
+}
+
+.unconnected-family h3 {
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .family-tree-graph {
+    justify-content: flex-start;
+    gap: 25px;
+  }
+
+  .tree-member {
+    flex-basis: 150px;
+    width: 150px;
+  }
+
+  .children-horizontal {
+    gap: 12px;
+  }
+}
+

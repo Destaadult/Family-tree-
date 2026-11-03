@@ -1,6 +1,6 @@
 
 /* =====================================
-   MY FAMILY HERITAGE - JAVASCRIPT
+   MY FAMILY HERITAGE - COMPLETE JAVASCRIPT
 ===================================== */
 
 const STORAGE_KEY = "myFamilyHeritageMembers";
@@ -55,7 +55,8 @@ function getFullName(member) {
 }
 
 function getMember(id) {
-  return members.find(member => member.id === id);
+  if (!id) return null;
+  return members.find(member => member.id === id) || null;
 }
 
 function formatDate(date) {
@@ -134,13 +135,18 @@ document.querySelectorAll("[data-go]").forEach(button => {
   });
 });
 
-// Add Settings navigation
+// Settings navigation
 const settingsButton = document.createElement("button");
+
 settingsButton.className = "nav-link";
 settingsButton.dataset.page = "settings";
 settingsButton.innerHTML = "<span>⚙️</span> Settings";
 
-document.querySelector(".navigation").appendChild(settingsButton);
+const navigation = document.querySelector(".navigation");
+
+if (navigation) {
+  navigation.appendChild(settingsButton);
+}
 
 settingsButton.addEventListener("click", () => {
   showPage("settings");
@@ -151,6 +157,8 @@ document.getElementById("quick-add-button")
   .addEventListener("click", () => {
     showPage("members");
     clearForm();
+
+    updateRelationshipOptions();
 
     document.getElementById("first-name").focus();
   });
@@ -168,6 +176,8 @@ function clearForm() {
 
   document.getElementById("save-member-button").textContent =
     "Save Family Member";
+
+  updateRelationshipOptions();
 }
 
 document.getElementById("cancel-edit-button")
@@ -190,16 +200,13 @@ memberForm.addEventListener("submit", function(event) {
   const motherId = document.getElementById("mother-id").value;
   const spouseId = document.getElementById("spouse-id").value;
 
-  const newMemberId = id || "";
-
-if (newMemberId && (
-  fatherId === newMemberId ||
-  motherId === newMemberId ||
-  spouseId === newMemberId
-)) {
-  alert("You cannot select yourself as your own parent or spouse.");
-  return;
-}
+  if (
+    id &&
+    (fatherId === id || motherId === id || spouseId === id)
+  ) {
+    alert("You cannot select yourself as your own parent or spouse.");
+    return;
+  }
 
   if (fatherId && fatherId === motherId) {
     alert("Please select different people for father and mother.");
@@ -210,20 +217,31 @@ if (newMemberId && (
 
   const member = {
     id: id || createId(),
+
     firstName,
+
     lastName: document.getElementById("last-name").value.trim(),
+
     gender: document.getElementById("gender").value,
+
     birthDate: document.getElementById("birth-date").value,
+
     deathDate: document.getElementById("death-date").value,
+
     fatherId,
     motherId,
     spouseId,
+
     birthPlace: document.getElementById("birth-place").value.trim(),
+
     biography: document.getElementById("biography").value.trim(),
-    createdAt: existing ? existing.createdAt : new Date().toISOString()
+
+    createdAt: existing
+      ? existing.createdAt
+      : new Date().toISOString()
   };
 
-  // Validate that a person cannot be their own ancestor
+  // Check circular parent relationships
   if (wouldCreateAncestorCycle(member)) {
     alert("This parent selection would create an invalid family relationship.");
     return;
@@ -240,13 +258,27 @@ if (newMemberId && (
     }
   }
 
+  // Save the member
   if (existing) {
     Object.assign(existing, member);
   } else {
     members.push(member);
   }
 
-  // Keep spouse connections in both directions
+  // Remove the previous spouse connection if it changed
+  const previousSpouse = existing
+    ? getMember(existing.spouseId)
+    : null;
+
+  if (
+    previousSpouse &&
+    previousSpouse.id !== spouseId &&
+    previousSpouse.spouseId === member.id
+  ) {
+    previousSpouse.spouseId = "";
+  }
+
+  // Connect new spouse in both directions
   if (spouseId) {
     const spouse = getMember(spouseId);
 
@@ -256,29 +288,44 @@ if (newMemberId && (
   }
 
   saveMembers();
+
   clearForm();
+
   refreshAll();
 
-  alert(existing ? "Family member updated!" : "Family member added!");
+  alert(existing
+    ? "Family member updated!"
+    : "Family member added!"
+  );
 });
 
-// Check for a circular parent relationship
+// =====================================
+// 5. VALIDATE PARENT RELATIONSHIPS
+// =====================================
+
 function wouldCreateAncestorCycle(candidate) {
-  const parents = [candidate.fatherId, candidate.motherId]
-    .filter(Boolean);
+  const parents = [
+    candidate.fatherId,
+    candidate.motherId
+  ].filter(Boolean);
 
   function hasAncestor(id, targetId, visited = new Set()) {
     if (!id) return false;
+
     if (id === targetId) return true;
+
     if (visited.has(id)) return false;
 
     visited.add(id);
 
     const person = getMember(id);
+
     if (!person) return false;
 
-    return hasAncestor(person.fatherId, targetId, visited) ||
-      hasAncestor(person.motherId, targetId, visited);
+    return (
+      hasAncestor(person.fatherId, targetId, visited) ||
+      hasAncestor(person.motherId, targetId, visited)
+    );
   }
 
   return parents.some(parentId =>
@@ -287,7 +334,7 @@ function wouldCreateAncestorCycle(candidate) {
 }
 
 // =====================================
-// 5. PARENT AND SPOUSE SELECTORS
+// 6. PARENT AND SPOUSE SELECTORS
 // =====================================
 
 function updateRelationshipOptions() {
@@ -301,6 +348,7 @@ function updateRelationshipOptions() {
 
   fields.forEach(fieldId => {
     const select = document.getElementById(fieldId);
+
     const previousValue = select.value;
 
     const labels = {
@@ -312,6 +360,7 @@ function updateRelationshipOptions() {
     select.innerHTML = "";
 
     const firstOption = document.createElement("option");
+
     firstOption.value = "";
     firstOption.textContent = labels[fieldId];
 
@@ -321,6 +370,7 @@ function updateRelationshipOptions() {
       if (member.id === currentId) return;
 
       const option = document.createElement("option");
+
       option.value = member.id;
       option.textContent = getFullName(member);
 
@@ -336,7 +386,7 @@ function updateRelationshipOptions() {
 }
 
 // =====================================
-// 6. DISPLAY FAMILY MEMBERS
+// 7. DISPLAY FAMILY MEMBERS
 // =====================================
 
 function renderMembers(searchTerm = "") {
@@ -344,6 +394,7 @@ function renderMembers(searchTerm = "") {
 
   const filtered = members.filter(member => {
     const name = getFullName(member).toLowerCase();
+
     return name.includes(searchTerm.toLowerCase());
   });
 
@@ -366,6 +417,7 @@ function renderMembers(searchTerm = "") {
 
     return `
       <article class="member-card">
+
         <div class="member-avatar">${avatar}</div>
 
         <h3>${escapeHTML(getFullName(member))}</h3>
@@ -381,10 +433,18 @@ function renderMembers(searchTerm = "") {
         </span>
 
         <div class="member-actions">
-          <button data-edit="${escapeHTML(member.id)}">Edit</button>
+
+          <button data-edit="${escapeHTML(member.id)}">
+            Edit
+          </button>
+
           <button class="delete-button"
-            data-delete="${escapeHTML(member.id)}">Delete</button>
+            data-delete="${escapeHTML(member.id)}">
+            Delete
+          </button>
+
         </div>
+
       </article>
     `;
   }).join("");
@@ -401,6 +461,7 @@ document.getElementById("members-list")
   .addEventListener("click", event => {
 
     const editButton = event.target.closest("[data-edit]");
+
     const deleteButton = event.target.closest("[data-delete]");
 
     if (editButton) {
@@ -413,28 +474,50 @@ document.getElementById("members-list")
   });
 
 // =====================================
-// 7. EDIT FAMILY MEMBER
+// 8. EDIT FAMILY MEMBER
 // =====================================
 
 function editMember(id) {
   const member = getMember(id);
+
   if (!member) return;
 
   showPage("members");
 
+  // Set the member ID before creating relationship options
+  document.getElementById("member-id").value = member.id;
+
   updateRelationshipOptions();
 
-  document.getElementById("member-id").value = member.id;
-  document.getElementById("first-name").value = member.firstName || "";
-  document.getElementById("last-name").value = member.lastName || "";
-  document.getElementById("gender").value = member.gender || "";
-  document.getElementById("birth-date").value = member.birthDate || "";
-  document.getElementById("death-date").value = member.deathDate || "";
-  document.getElementById("father-id").value = member.fatherId || "";
-  document.getElementById("mother-id").value = member.motherId || "";
-  document.getElementById("spouse-id").value = member.spouseId || "";
-  document.getElementById("birth-place").value = member.birthPlace || "";
-  document.getElementById("biography").value = member.biography || "";
+  document.getElementById("first-name").value =
+    member.firstName || "";
+
+  document.getElementById("last-name").value =
+    member.lastName || "";
+
+  document.getElementById("gender").value =
+    member.gender || "";
+
+  document.getElementById("birth-date").value =
+    member.birthDate || "";
+
+  document.getElementById("death-date").value =
+    member.deathDate || "";
+
+  document.getElementById("father-id").value =
+    member.fatherId || "";
+
+  document.getElementById("mother-id").value =
+    member.motherId || "";
+
+  document.getElementById("spouse-id").value =
+    member.spouseId || "";
+
+  document.getElementById("birth-place").value =
+    member.birthPlace || "";
+
+  document.getElementById("biography").value =
+    member.biography || "";
 
   document.getElementById("save-member-button").textContent =
     "Update Family Member";
@@ -443,11 +526,12 @@ function editMember(id) {
 }
 
 // =====================================
-// 8. DELETE FAMILY MEMBER
+// 9. DELETE FAMILY MEMBER
 // =====================================
 
 function deleteMember(id) {
   const member = getMember(id);
+
   if (!member) return;
 
   const confirmed = confirm(
@@ -461,30 +545,49 @@ function deleteMember(id) {
     .filter(person => person.id !== id)
     .map(person => ({
       ...person,
-      fatherId: person.fatherId === id ? "" : person.fatherId,
-      motherId: person.motherId === id ? "" : person.motherId,
-      spouseId: person.spouseId === id ? "" : person.spouseId
+
+      fatherId: person.fatherId === id
+        ? ""
+        : person.fatherId,
+
+      motherId: person.motherId === id
+        ? ""
+        : person.motherId,
+
+      spouseId: person.spouseId === id
+        ? ""
+        : person.spouseId
     }));
 
   saveMembers();
+
   refreshAll();
 }
 
 // =====================================
-// 9. DASHBOARD
+// 10. DASHBOARD
 // =====================================
 
 function calculateGenerations() {
   const cache = new Map();
 
   function generationOf(member, visited = new Set()) {
-    if (cache.has(member.id)) return cache.get(member.id);
-    if (visited.has(member.id)) return 1;
+    if (cache.has(member.id)) {
+      return cache.get(member.id);
+    }
+
+    if (visited.has(member.id)) {
+      return 1;
+    }
 
     const nextVisited = new Set(visited);
+
     nextVisited.add(member.id);
 
-    const parents = [member.fatherId, member.motherId]
+    const parents = [
+      member.fatherId,
+      member.motherId
+    ]
       .map(getMember)
       .filter(Boolean);
 
@@ -500,14 +603,15 @@ function calculateGenerations() {
     );
 
     cache.set(member.id, result);
+
     return result;
   }
 
   if (members.length === 0) return 0;
 
-  return Math.max(...members.map(member =>
-    generationOf(member)
-  ));
+  return Math.max(
+    ...members.map(member => generationOf(member))
+  );
 }
 
 function renderDashboard() {
@@ -525,7 +629,8 @@ function renderDashboard() {
 
   const recent = [...members]
     .sort((a, b) =>
-      new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+      new Date(b.createdAt || 0) -
+      new Date(a.createdAt || 0)
     )
     .slice(0, 5);
 
@@ -549,131 +654,9 @@ function renderDashboard() {
     </div>
   `).join("");
 }
-/*     
-// =====================================
-// 10. FAMILY TREE - PARENT CHILD GRAPH
-// =====================================
-
-function renderFamilyTree() {
-  const container = document.getElementById("family-tree");
-
-  if (!members.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div>🌳</div>
-        <h3>Your family tree is waiting</h3>
-        <p>Add family members and connect parents to build your tree.</p>
-      </div>
-    `;
-    return;
-  }
-
-  function avatar(member) {
-    return member.gender === "Female" ? "👩" :
-      member.gender === "Male" ? "👨" : "👤";
-  }
-
-  function memberCard(member) {
-    return `
-      <div class="tree-member">
-        <div class="tree-avatar">${avatar(member)}</div>
-        <strong>${escapeHTML(getFullName(member))}</strong>
-        <span>${escapeHTML(member.birthPlace || "")}</span>
-      </div>
-    `;
-  }
-
-  // Find children using saved parent IDs
-  function getChildren(parentId) {
-    return members.filter(member =>
-      member.fatherId === parentId ||
-      member.motherId === parentId
-    );
-  }
-
-  // Render one person's descendants
-  function renderBranch(member, visited = new Set()) {
-    if (visited.has(member.id)) return "";
-
-    const nextVisited = new Set(visited);
-    nextVisited.add(member.id);
-
-    const children = getChildren(member.id);
-
-    if (!children.length) return "";
-
-    return `
-      <div class="family-line"></div>
-
-      <div class="children-horizontal">
-        ${children.map(child => `
-          <div class="child-branch">
-            ${memberCard(child)}
-            ${renderBranch(child, nextVisited)}
-          </div>
-        `).join("")}
-      </div>
-    `;
-  }
-
-  // Find the oldest generation (people without parents)
-  const roots = members.filter(member =>
-    !getMember(member.fatherId) &&
-    !getMember(member.motherId)
-  );
-
-  if (!roots.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <h3>No starting generation found</h3>
-        <p>Check the parent relationships of your family members.</p>
-      </div>
-    `;
-    return;
-  }
-
-  // Group spouses together when they are both roots
-  const displayed = new Set();
-
-  function renderRoot(member) {
-    if (displayed.has(member.id)) return "";
-
-    displayed.add(member.id);
-
-    const spouse = getMember(member.spouseId);
-
-    let couple = memberCard(member);
-
-    if (spouse && !getMember(spouse.fatherId) &&
-        !getMember(spouse.motherId) &&
-        !displayed.has(spouse.id)) {
-      displayed.add(spouse.id);
-      couple += memberCard(spouse);
-    }
-
-    return `
-      <div class="family-branch">
-        <div class="family-couple">
-          ${couple}
-        </div>
-
-        ${renderBranch(member)}
-      </div>
-    `;
-  }
-
-  container.innerHTML = `
-    <div class="family-tree-graph">
-      ${roots.map(renderRoot).join("")}
-    </div>
-  `;
-}
-*/
-
-
 
 // =====================================
-// 10. FAMILY TREE - COMPLETE RELATIONSHIP GRAPH
+// 11. COMPLETE FAMILY TREE
 // =====================================
 
 function renderFamilyTree() {
@@ -697,24 +680,39 @@ function renderFamilyTree() {
       member.gender === "Male" ? "👨" : "👤";
   }
 
-  function memberCard(member) {
+  function memberCard(member, relationship = "") {
     return `
       <div class="tree-member">
-        <div class="tree-avatar">${avatar(member)}</div>
+
+        <div class="tree-avatar">
+          ${avatar(member)}
+        </div>
+
         <strong>${escapeHTML(getFullName(member))}</strong>
+
+        ${relationship
+          ? `<span>${escapeHTML(relationship)}</span>`
+          : ""
+        }
+
         <span>${escapeHTML(member.birthPlace || "")}</span>
+
       </div>
     `;
   }
 
+  // Find children of one or two parents
   function getChildren(parentIds) {
     return members.filter(member =>
-      (parentIds.includes(member.fatherId) ||
-       parentIds.includes(member.motherId)) &&
+      (
+        parentIds.includes(member.fatherId) ||
+        parentIds.includes(member.motherId)
+      ) &&
       !displayed.has(member.id)
     );
   }
 
+  // Render descendants recursively
   function renderBranch(parentIds, visited = new Set()) {
     const children = getChildren(parentIds);
 
@@ -722,25 +720,64 @@ function renderFamilyTree() {
 
     return `
       <div class="family-line"></div>
+
       <div class="children-horizontal">
+
         ${children.map(child => {
-          displayed.add(child.id);
+
+          if (visited.has(child.id)) {
+            return "";
+          }
 
           const nextVisited = new Set(visited);
+
           nextVisited.add(child.id);
+
+          displayed.add(child.id);
+
+          // Find this child's spouse
+          const spouse = getMember(child.spouseId);
+
+          let couple = [child];
+
+          if (
+            spouse &&
+            !displayed.has(spouse.id) &&
+            !nextVisited.has(spouse.id)
+          ) {
+            couple.push(spouse);
+            displayed.add(spouse.id);
+          }
+
+          // Include both partners when finding grandchildren
+          const nextParentIds = couple.map(person => person.id);
 
           return `
             <div class="child-branch">
-              ${memberCard(child)}
-              ${renderBranch([child.id], nextVisited)}
+
+              <div class="family-couple">
+
+                ${couple.map(person =>
+                  memberCard(
+                    person,
+                    person.id === child.id ? "Child" : "Spouse"
+                  )
+                ).join("")}
+
+              </div>
+
+              ${renderBranch(nextParentIds, nextVisited)}
+
             </div>
           `;
+
         }).join("")}
+
       </div>
     `;
   }
 
-  // Find people who have no recorded parents
+  // Find oldest generation
   const roots = members.filter(member =>
     !getMember(member.fatherId) &&
     !getMember(member.motherId)
@@ -756,6 +793,7 @@ function renderFamilyTree() {
     return;
   }
 
+  // Render each oldest-generation couple
   function renderRoot(member) {
     if (displayed.has(member.id)) return "";
 
@@ -765,9 +803,9 @@ function renderFamilyTree() {
 
     if (
       spouse &&
+      !displayed.has(spouse.id) &&
       !getMember(spouse.fatherId) &&
-      !getMember(spouse.motherId) &&
-      !displayed.has(spouse.id)
+      !getMember(spouse.motherId)
     ) {
       couple.push(spouse);
     }
@@ -778,25 +816,60 @@ function renderFamilyTree() {
 
     return `
       <div class="family-branch">
+
         <div class="family-couple">
-          ${couple.map(memberCard).join("")}
+
+          ${couple.map(person =>
+            memberCard(
+              person,
+              person.id === member.id ? "Family elder" : "Spouse"
+            )
+          ).join("")}
+
         </div>
 
         ${renderBranch(parentIds, new Set(parentIds))}
+
       </div>
     `;
   }
 
   container.innerHTML = `
     <div class="family-tree-graph">
+
       ${roots.map(renderRoot).join("")}
+
     </div>
   `;
+
+  // Report people who could not be connected to the tree
+  const unconnected = members.filter(member =>
+    !displayed.has(member.id)
+  );
+
+  if (unconnected.length) {
+    container.innerHTML += `
+      <div class="unconnected-family">
+
+        <h3>Other Family Members</h3>
+
+        <p>These members are not connected to the displayed family branches yet.</p>
+
+        <div class="family-couple">
+
+          ${unconnected.map(member =>
+            memberCard(member, "Not connected")
+          ).join("")}
+
+        </div>
+
+      </div>
+    `;
+  }
 }
 
-
 // =====================================
-// 11. FAMILY TIMELINE
+// 12. FAMILY TIMELINE
 // =====================================
 
 function renderTimeline() {
@@ -805,6 +878,7 @@ function renderTimeline() {
   const events = [];
 
   members.forEach(member => {
+
     if (member.birthDate) {
       events.push({
         date: member.birthDate,
@@ -820,6 +894,7 @@ function renderTimeline() {
         detail: "Date of death"
       });
     }
+
   });
 
   events.sort((a, b) => a.date.localeCompare(b.date));
@@ -837,15 +912,19 @@ function renderTimeline() {
 
   container.innerHTML = events.map(event => `
     <div class="timeline-item">
+
       <strong>${escapeHTML(formatDate(event.date))}</strong>
+
       <p>${escapeHTML(event.title)}</p>
+
       <p>${escapeHTML(event.detail)}</p>
+
     </div>
   `).join("");
 }
 
 // =====================================
-// 12. EXPORT FAMILY DATA
+// 13. EXPORT FAMILY DATA
 // =====================================
 
 document.getElementById("export-button")
@@ -863,18 +942,23 @@ document.getElementById("export-button")
     );
 
     const url = URL.createObjectURL(file);
+
     const link = document.createElement("a");
 
     link.href = url;
     link.download = "my-family-heritage-backup.json";
 
+    document.body.appendChild(link);
+
     link.click();
+
+    link.remove();
 
     URL.revokeObjectURL(url);
   });
 
 // =====================================
-// 13. IMPORT FAMILY DATA
+// 14. IMPORT FAMILY DATA
 // =====================================
 
 document.getElementById("import-file")
@@ -885,8 +969,9 @@ document.getElementById("import-file")
     if (!file) return;
 
     try {
-      const text = await file.text();
-      const backup = JSON.parse(text);
+      const fileText = await file.text();
+
+      const backup = JSON.parse(fileText);
 
       if (!backup || !Array.isArray(backup.members)) {
         throw new Error("Invalid backup file");
@@ -899,7 +984,7 @@ document.getElementById("import-file")
       );
 
       if (!validMembers) {
-        throw new Error("The backup contains invalid member information.");
+        throw new Error("Invalid member information");
       }
 
       const confirmed = confirm(
@@ -911,12 +996,16 @@ document.getElementById("import-file")
       members = backup.members;
 
       saveMembers();
+
       refreshAll();
 
       alert("Family information imported successfully!");
 
     } catch (error) {
-      alert("Could not import this file. Please select a valid family backup.");
+      alert(
+        "Could not import this file. Please select a valid family backup."
+      );
+
       console.error(error);
 
     } finally {
@@ -925,26 +1014,32 @@ document.getElementById("import-file")
   });
 
 // =====================================
-// 14. REFRESH WEBSITE
+// 15. REFRESH WEBSITE
 // =====================================
 
 function refreshAll() {
   updateRelationshipOptions();
+
   renderDashboard();
+
   renderMembers(
     document.getElementById("member-search").value
   );
+
   renderFamilyTree();
+
   renderTimeline();
 }
 
 // =====================================
-// 15. INITIALIZE WEBSITE
+// 16. INITIALIZE WEBSITE
 // =====================================
 
 document.getElementById("current-year").textContent =
   new Date().getFullYear();
 
 updateRelationshipOptions();
+
 refreshAll();
+
 showPage("dashboard");

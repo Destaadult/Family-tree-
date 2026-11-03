@@ -190,12 +190,14 @@ memberForm.addEventListener("submit", function(event) {
   const motherId = document.getElementById("mother-id").value;
   const spouseId = document.getElementById("spouse-id").value;
 
-  if (id && (
-  fatherId === id ||
-  motherId === id ||
-  spouseId === id
+  const newMemberId = id || "";
+
+if (newMemberId && (
+  fatherId === newMemberId ||
+  motherId === newMemberId ||
+  spouseId === newMemberId
 )) {
-  alert("A family member cannot be their own parent or spouse.");
+  alert("You cannot select yourself as your own parent or spouse.");
   return;
 }
 

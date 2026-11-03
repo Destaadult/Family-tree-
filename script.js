@@ -549,15 +549,15 @@ function renderDashboard() {
     </div>
   `).join("");
 }
-
+/*     
 // =====================================
-// 10. FAMILY TREE
+// 10. FAMILY TREE - PARENT CHILD GRAPH
 // =====================================
 
 function renderFamilyTree() {
   const container = document.getElementById("family-tree");
 
-  if (members.length === 0) {
+  if (!members.length) {
     container.innerHTML = `
       <div class="empty-state">
         <div>🌳</div>
@@ -568,60 +568,232 @@ function renderFamilyTree() {
     return;
   }
 
-  const generations = new Map();
+  function avatar(member) {
+    return member.gender === "Female" ? "👩" :
+      member.gender === "Male" ? "👨" : "👤";
+  }
 
-  function generationOf(member, visited = new Set()) {
-    if (visited.has(member.id)) return 1;
+  function memberCard(member) {
+    return `
+      <div class="tree-member">
+        <div class="tree-avatar">${avatar(member)}</div>
+        <strong>${escapeHTML(getFullName(member))}</strong>
+        <span>${escapeHTML(member.birthPlace || "")}</span>
+      </div>
+    `;
+  }
+
+  // Find children using saved parent IDs
+  function getChildren(parentId) {
+    return members.filter(member =>
+      member.fatherId === parentId ||
+      member.motherId === parentId
+    );
+  }
+
+  // Render one person's descendants
+  function renderBranch(member, visited = new Set()) {
+    if (visited.has(member.id)) return "";
 
     const nextVisited = new Set(visited);
     nextVisited.add(member.id);
 
-    const parents = [getMember(member.fatherId), getMember(member.motherId)]
-      .filter(Boolean);
+    const children = getChildren(member.id);
 
-    if (parents.length === 0) return 1;
-
-    return 1 + Math.max(...parents.map(parent =>
-      generationOf(parent, nextVisited)
-    ));
-  }
-
-  members.forEach(member => {
-    const generation = generationOf(member);
-
-    if (!generations.has(generation)) {
-      generations.set(generation, []);
-    }
-
-    generations.get(generation).push(member);
-  });
-
-  const sortedGenerations = [...generations.keys()].sort((a, b) => a - b);
-
-  container.innerHTML = sortedGenerations.map((generation, index) => {
-    const people = generations.get(generation);
+    if (!children.length) return "";
 
     return `
-      <div class="tree-generation">
-        ${people.map(member => {
-          const avatar = member.gender === "Female" ? "👩" :
-            member.gender === "Male" ? "👨" : "👤";
+      <div class="family-line"></div>
+
+      <div class="children-horizontal">
+        ${children.map(child => `
+          <div class="child-branch">
+            ${memberCard(child)}
+            ${renderBranch(child, nextVisited)}
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  // Find the oldest generation (people without parents)
+  const roots = members.filter(member =>
+    !getMember(member.fatherId) &&
+    !getMember(member.motherId)
+  );
+
+  if (!roots.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>No starting generation found</h3>
+        <p>Check the parent relationships of your family members.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Group spouses together when they are both roots
+  const displayed = new Set();
+
+  function renderRoot(member) {
+    if (displayed.has(member.id)) return "";
+
+    displayed.add(member.id);
+
+    const spouse = getMember(member.spouseId);
+
+    let couple = memberCard(member);
+
+    if (spouse && !getMember(spouse.fatherId) &&
+        !getMember(spouse.motherId) &&
+        !displayed.has(spouse.id)) {
+      displayed.add(spouse.id);
+      couple += memberCard(spouse);
+    }
+
+    return `
+      <div class="family-branch">
+        <div class="family-couple">
+          ${couple}
+        </div>
+
+        ${renderBranch(member)}
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <div class="family-tree-graph">
+      ${roots.map(renderRoot).join("")}
+    </div>
+  `;
+}
+*/
+
+
+
+// =====================================
+// 10. FAMILY TREE - COMPLETE RELATIONSHIP GRAPH
+// =====================================
+
+function renderFamilyTree() {
+  const container = document.getElementById("family-tree");
+
+  if (!members.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div>🌳</div>
+        <h3>Your family tree is waiting</h3>
+        <p>Add family members and connect their parents.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const displayed = new Set();
+
+  function avatar(member) {
+    return member.gender === "Female" ? "👩" :
+      member.gender === "Male" ? "👨" : "👤";
+  }
+
+  function memberCard(member) {
+    return `
+      <div class="tree-member">
+        <div class="tree-avatar">${avatar(member)}</div>
+        <strong>${escapeHTML(getFullName(member))}</strong>
+        <span>${escapeHTML(member.birthPlace || "")}</span>
+      </div>
+    `;
+  }
+
+  function getChildren(parentIds) {
+    return members.filter(member =>
+      (parentIds.includes(member.fatherId) ||
+       parentIds.includes(member.motherId)) &&
+      !displayed.has(member.id)
+    );
+  }
+
+  function renderBranch(parentIds, visited = new Set()) {
+    const children = getChildren(parentIds);
+
+    if (!children.length) return "";
+
+    return `
+      <div class="family-line"></div>
+      <div class="children-horizontal">
+        ${children.map(child => {
+          displayed.add(child.id);
+
+          const nextVisited = new Set(visited);
+          nextVisited.add(child.id);
 
           return `
-            <div class="tree-member">
-              <div class="tree-avatar">${avatar}</div>
-              <strong>${escapeHTML(getFullName(member))}</strong>
-              <span>Generation ${generation}</span>
-              <span>${escapeHTML(member.birthPlace || "")}</span>
+            <div class="child-branch">
+              ${memberCard(child)}
+              ${renderBranch([child.id], nextVisited)}
             </div>
           `;
         }).join("")}
       </div>
-      ${index < sortedGenerations.length - 1 ?
-        '<div class="tree-connector">↓</div>' : ""}
     `;
-  }).join("");
+  }
+
+  // Find people who have no recorded parents
+  const roots = members.filter(member =>
+    !getMember(member.fatherId) &&
+    !getMember(member.motherId)
+  );
+
+  if (!roots.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>No starting generation found</h3>
+        <p>Please check the parent relationships.</p>
+      </div>
+    `;
+    return;
+  }
+
+  function renderRoot(member) {
+    if (displayed.has(member.id)) return "";
+
+    const spouse = getMember(member.spouseId);
+
+    const couple = [member];
+
+    if (
+      spouse &&
+      !getMember(spouse.fatherId) &&
+      !getMember(spouse.motherId) &&
+      !displayed.has(spouse.id)
+    ) {
+      couple.push(spouse);
+    }
+
+    couple.forEach(person => displayed.add(person.id));
+
+    const parentIds = couple.map(person => person.id);
+
+    return `
+      <div class="family-branch">
+        <div class="family-couple">
+          ${couple.map(memberCard).join("")}
+        </div>
+
+        ${renderBranch(parentIds, new Set(parentIds))}
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <div class="family-tree-graph">
+      ${roots.map(renderRoot).join("")}
+    </div>
+  `;
 }
+
 
 // =====================================
 // 11. FAMILY TIMELINE

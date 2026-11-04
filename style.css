@@ -914,3 +914,123 @@ button {
 }
 
 /* FAMILY TREE - VERTICAL RELATIONSHIPS */
+
+
+/* =====================================
+   FAMILY MEMBER PHOTO UPLOAD
+===================================== */
+
+.photo-upload-group {
+  margin-top: 5px;
+}
+
+.photo-upload-group input[type="file"] {
+  background: white;
+  padding: 12px;
+  border: 1px dashed #94a3b8;
+  border-radius: 10px;
+  width: 100%;
+}
+
+.photo-upload-group small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.photo-preview-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+#photo-preview {
+  width: 130px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid #dbeafe;
+  box-shadow: var(--shadow);
+}
+
+#photo-preview[hidden],
+#remove-photo-button[hidden] {
+  display: none;
+}
+
+.remove-photo-button {
+  margin-top: 10px;
+  width: fit-content;
+}
+
+/* Member card photos */
+
+.member-avatar {
+  width: 85px;
+  height: 85px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dbeafe;
+  margin: 0 auto 15px;
+  font-size: 35px;
+}
+
+.member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Family tree photos */
+
+.tree-avatar {
+  width: 75px;
+  height: 75px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #dbeafe;
+}
+
+.tree-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Recently added member photos */
+
+.recent-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.recent-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #dbeafe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 22px;
+}
+
+.recent-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

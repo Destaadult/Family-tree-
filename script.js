@@ -301,8 +301,16 @@ function clearForm() {
   document.getElementById("save-member-button").textContent =
     "Save Family Member";
 
+  resetPhotoControls();
+
   updateRelationshipOptions();
 }
+  
+
+  
+
+  
+
 
 document.getElementById("cancel-edit-button")
   .addEventListener("click", clearForm);
@@ -358,11 +366,18 @@ memberForm.addEventListener("submit", function(event) {
 
     birthPlace: document.getElementById("birth-place").value.trim(),
 
-    biography: document.getElementById("biography").value.trim(),
+biography: document.getElementById("biography").value.trim(),
 
-    createdAt: existing
-      ? existing.createdAt
-      : new Date().toISOString()
+// Save or preserve family photograph
+photo: selectedPhotoData ||
+  (removePhoto ? "" : (existing?.photo || "")),
+
+createdAt: existing
+  ? existing.createdAt
+  : new Date().toISOString()
+
+     
+      
   };
 
   // Check circular parent relationships
@@ -542,7 +557,13 @@ function renderMembers(searchTerm = "") {
     return `
       <article class="member-card">
 
-        <div class="member-avatar">${avatar}</div>
+        <div class="member-avatar">
+  ${member.photo
+    ? `<img src="${escapeHTML(member.photo)}"
+         alt="${escapeHTML(getFullName(member))}">`
+    : avatar
+  }
+</div>
 
         <h3>${escapeHTML(getFullName(member))}</h3>
 
@@ -605,6 +626,12 @@ function editMember(id) {
   const member = getMember(id);
 
   if (!member) return;
+
+   resetPhotoControls();
+
+if (member.photo) {
+  showPhotoPreview(member.photo);
+}
 
   showPage("members");
 
@@ -805,24 +832,31 @@ function renderFamilyTree() {
   }
 
   function memberCard(member, relationship = "") {
-    return `
-      <div class="tree-member">
+  const memberAvatar = member.photo
+    ? `<img src="${escapeHTML(member.photo)}"
+         alt="${escapeHTML(getFullName(member))}">`
+    : avatar(member);
 
-        <div class="tree-avatar">
-          ${avatar(member)}
-        </div>
+  return `
+    <div class="tree-member">
 
-        <strong>${escapeHTML(getFullName(member))}</strong>
-
-        ${relationship
-          ? `<span>${escapeHTML(relationship)}</span>`
-          : ""
-        }
-
-        <span>${escapeHTML(member.birthPlace || "")}</span>
-
+      <div class="tree-avatar">
+        ${memberAvatar}
       </div>
-    `;
+
+      <strong>${escapeHTML(getFullName(member))}</strong>
+
+      ${relationship
+        ? `<span>${escapeHTML(relationship)}</span>`
+        : ""
+      }
+
+      <span>${escapeHTML(member.birthPlace || "")}</span>
+
+    </div>
+  `;
+
+      
   }
 
   // Find children of one or two parents

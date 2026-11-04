@@ -168,6 +168,130 @@ document.getElementById("quick-add-button")
 // =====================================
 
 const memberForm = document.getElementById("member-form");
+// =====================================
+// FAMILY PHOTO UPLOAD SYSTEM
+// =====================================
+
+const photoInput = document.getElementById("member-photo");
+const photoPreview = document.getElementById("photo-preview");
+const removePhotoButton = document.getElementById("remove-photo-button");
+
+let selectedPhotoData = "";
+let removePhoto = false;
+
+// Display photograph preview
+function showPhotoPreview(photo) {
+  if (!photo) {
+    hidePhotoPreview();
+    return;
+  }
+
+  photoPreview.src = photo;
+  photoPreview.hidden = false;
+  removePhotoButton.hidden = false;
+}
+
+// Hide photograph preview
+function hidePhotoPreview() {
+  photoPreview.src = "";
+  photoPreview.hidden = true;
+  removePhotoButton.hidden = true;
+}
+
+// Compress photograph before saving
+function compressPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const imageURL = URL.createObjectURL(file);
+
+    image.onload = function() {
+      const maxSize = 600;
+
+      let width = image.width;
+      let height = image.height;
+
+      if (width > height && width > maxSize) {
+        height = Math.round(height * maxSize / width);
+        width = maxSize;
+      } else if (height > maxSize) {
+        width = Math.round(width * maxSize / height);
+        height = maxSize;
+      }
+
+      const canvas = document.createElement("canvas");
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const context = canvas.getContext("2d");
+
+      context.drawImage(image, 0, 0, width, height);
+
+      const compressedPhoto = canvas.toDataURL(
+        "image/jpeg",
+        0.78
+      );
+
+      URL.revokeObjectURL(imageURL);
+
+      resolve(compressedPhoto);
+    };
+
+    image.onerror = function() {
+      URL.revokeObjectURL(imageURL);
+      reject(new Error("Could not read photograph."));
+    };
+
+    image.src = imageURL;
+  });
+}
+
+// Handle photo selection
+photoInput.addEventListener("change", async function() {
+  const file = this.files[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    alert("Please select an image.");
+    this.value = "";
+    return;
+  }
+
+  try {
+    selectedPhotoData = await compressPhoto(file);
+
+    removePhoto = false;
+
+    showPhotoPreview(selectedPhotoData);
+
+  } catch (error) {
+    alert("Could not process this photograph.");
+    console.error(error);
+  }
+});
+
+// Remove selected or existing photograph
+removePhotoButton.addEventListener("click", function() {
+  selectedPhotoData = "";
+  removePhoto = true;
+
+  photoInput.value = "";
+
+  hidePhotoPreview();
+});
+
+// Reset photo controls
+function resetPhotoControls() {
+  selectedPhotoData = "";
+  removePhoto = false;
+
+  photoInput.value = "";
+
+  hidePhotoPreview();
+}
+
+
 
 function clearForm() {
   memberForm.reset();

@@ -806,224 +806,230 @@ function renderDashboard() {
   `).join("");
 }
 
+
 // =====================================
-// 11. COMPLETE FAMILY TREE
+// 11. CLICKABLE FAMILY TREE
 // =====================================
 
-function renderFamilyTree() {
+// Navigation history for family branches
+let familyTreeHistory = [];
+
+// Find Desta as the main family root
+
+function getMainFamilyRoot() {
+  const desta = members.find(member =>
+    getFullName(member).trim().toLowerCase() === "desta"
+  );
+
+  if (desta) return desta;
+
+  return members.find(member =>
+    !getMember(member.fatherId) &&
+    !getMember(member.motherId)
+  ) || null;
+}
+
+// Find only the direct children of a person
+function getTreeChildren(parentId) {
+  return members.filter(member =>
+    member.fatherId === parentId ||
+    member.motherId === parentId
+  );
+}
+
+// Create a clickable family member card
+function createTreeMemberCard(member) {
+  const memberAvatar = member.photo
+    ? `<img src="${escapeHTML(member.photo)}"
+         alt="${escapeHTML(getFullName(member))}">`
+    : member.gender === "Female" ? "👩"
+    : member.gender === "Male" ? "👨"
+    : "👤";
+
+  const childrenCount = getTreeChildren(member.id).length;
+
+  return `
+    <button
+      type="button"
+      class="tree-click-card"
+      data-tree-person="${escapeHTML(member.id)}"
+      aria-label="View children of ${escapeHTML(getFullName(member))}"
+    >
+
+      <div class="tree-member">
+
+        <div class="tree-avatar">
+          ${memberAvatar}
+        </div>
+
+        <strong>${escapeHTML(getFullName(member))}</strong>
+
+        <span>
+          ${childrenCount} ${childrenCount === 1 ? "Child" : "Children"}
+        </span>
+
+        <span class="tree-view-hint">
+          View family branch →
+        </span>
+
+      </div>
+
+    </button>
+  `;
+}
+
+// Display one person's direct children
+function renderFamilyTree(personId = null) {
   const container = document.getElementById("family-tree");
 
-  if (!members.length) {
+  if (!container) return;
+
+  const root = getMainFamilyRoot();
+
+  if (!root) {
     container.innerHTML = `
       <div class="empty-state">
         <div>🌳</div>
         <h3>Your family tree is waiting</h3>
-        <p>Add family members and connect their parents.</p>
+        <p>Add Desta first, then connect his children using the father and mother fields.</p>
       </div>
     `;
     return;
   }
 
-  const displayed = new Set();
+  const currentPerson = personId
+    ? getMember(personId)
+    : root;
 
-  function avatar(member) {
-    return member.gender === "Female" ? "👩" :
-      member.gender === "Male" ? "👨" : "👤";
-  }
-
-  function memberCard(member, relationship = "") {
-  const memberAvatar = member.photo
-    ? `<img src="${escapeHTML(member.photo)}"
-         alt="${escapeHTML(getFullName(member))}">`
-    : avatar(member);
-
-  return `
-    <div class="tree-member">
-
-      <div class="tree-avatar">
-        ${memberAvatar}
-      </div>
-
-      <strong>${escapeHTML(getFullName(member))}</strong>
-
-      ${relationship
-        ? `<span>${escapeHTML(relationship)}</span>`
-        : ""
-      }
-
-      <span>${escapeHTML(member.birthPlace || "")}</span>
-
-    </div>
-  `;
-
-      
-  }
-
-  // Find children of one or two parents
-  function getChildren(parentIds) {
-    return members.filter(member =>
-      (
-        parentIds.includes(member.fatherId) ||
-        parentIds.includes(member.motherId)
-      ) &&
-      !displayed.has(member.id)
-    );
-  }
-
-  // Render descendants recursively
-  function renderBranch(parentIds, visited = new Set()) {
-    const children = getChildren(parentIds);
-
-    if (!children.length) return "";
-
-    return `
-      <div class="family-line"></div>
-
-      <div class="children-horizontal">
-
-        ${children.map(child => {
-
-          if (visited.has(child.id)) {
-            return "";
-          }
-
-          const nextVisited = new Set(visited);
-
-          nextVisited.add(child.id);
-
-          displayed.add(child.id);
-
-          // Find this child's spouse
-          const spouse = getMember(child.spouseId);
-
-          let couple = [child];
-
-          if (
-            spouse &&
-            !displayed.has(spouse.id) &&
-            !nextVisited.has(spouse.id)
-          ) {
-            couple.push(spouse);
-            displayed.add(spouse.id);
-          }
-
-          // Include both partners when finding grandchildren
-          const nextParentIds = couple.map(person => person.id);
-
-          return `
-            <div class="child-branch">
-
-              <div class="family-couple">
-
-                ${couple.map(person =>
-                  memberCard(
-                    person,
-                    person.id === child.id ? "Child" : "Spouse"
-                  )
-                ).join("")}
-
-              </div>
-
-              ${renderBranch(nextParentIds, nextVisited)}
-
-            </div>
-          `;
-
-        }).join("")}
-
-      </div>
-    `;
-  }
-
-  // Find oldest generation
-  const roots = members.filter(member =>
-    !getMember(member.fatherId) &&
-    !getMember(member.motherId)
-  );
-
-  if (!roots.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <h3>No starting generation found</h3>
-        <p>Please check the parent relationships.</p>
-      </div>
-    `;
+  if (!currentPerson) {
+    familyTreeHistory = [];
+    renderFamilyTree(root.id);
     return;
   }
 
-  // Render each oldest-generation couple
-  function renderRoot(member) {
-    if (displayed.has(member.id)) return "";
+  const children = getTreeChildren(currentPerson.id);
 
-    const spouse = getMember(member.spouseId);
-
-    const couple = [member];
-
-    if (
-      spouse &&
-      !displayed.has(spouse.id) &&
-      !getMember(spouse.fatherId) &&
-      !getMember(spouse.motherId)
-    ) {
-      couple.push(spouse);
-    }
-
-    couple.forEach(person => displayed.add(person.id));
-
-    const parentIds = couple.map(person => person.id);
-
-    return `
-      <div class="family-branch">
-
-        <div class="family-couple">
-
-          ${couple.map(person =>
-            memberCard(
-              person,
-              person.id === member.id ? "Family elder" : "Spouse"
-            )
-          ).join("")}
-
-        </div>
-
-        ${renderBranch(parentIds, new Set(parentIds))}
-
-      </div>
-    `;
-  }
+  const isRoot = currentPerson.id === root.id;
 
   container.innerHTML = `
-    <div class="family-tree-graph">
+    <div class="family-tree-navigation">
 
-      ${roots.map(renderRoot).join("")}
+      <div class="tree-navigation-buttons">
+
+        <button
+          type="button"
+          id="tree-back-button"
+          ${familyTreeHistory.length === 0 ? "disabled" : ""}
+        >
+          ← Back
+        </button>
+
+        <button
+          type="button"
+          id="tree-home-button"
+        >
+          🏠 Home
+        </button>
+
+      </div>
+
+      <div class="tree-current-person">
+
+        <div class="tree-root-card">
+
+          <div class="tree-avatar">
+            ${
+              currentPerson.photo
+                ? `<img src="${escapeHTML(currentPerson.photo)}"
+                     alt="${escapeHTML(getFullName(currentPerson))}">`
+                : currentPerson.gender === "Female" ? "👩"
+                : currentPerson.gender === "Male" ? "👨"
+                : "👤"
+            }
+          </div>
+
+          <h2>${escapeHTML(getFullName(currentPerson))}</h2>
+
+          <p>
+            ${isRoot ? "First Grandfather / Family Root" : "Selected Family Member"}
+          </p>
+
+        </div>
+
+        <div class="tree-connector"></div>
+
+        <h3>
+          Children of ${escapeHTML(getFullName(currentPerson))}
+        </h3>
+
+        <p class="tree-description">
+          ${
+            children.length
+              ? "Select a person below to view only their children."
+              : "No children have been connected to this person yet."
+          }
+        </p>
+
+      </div>
+
+      <div class="tree-generation">
+
+        ${
+          children.length
+            ? children.map(child =>
+                createTreeMemberCard(child)
+              ).join("")
+            : `
+              <div class="empty-state">
+                <div>👨‍👩‍👧‍👦</div>
+                <h3>No children found</h3>
+                <p>Add this person's children and select their name as the father or mother.</p>
+              </div>
+            `
+        }
+
+      </div>
 
     </div>
   `;
 
-  // Report people who could not be connected to the tree
-  const unconnected = members.filter(member =>
-    !displayed.has(member.id)
-  );
+  // Back to previous generation
+  document.getElementById("tree-back-button")
+    .addEventListener("click", () => {
 
-  if (unconnected.length) {
-    container.innerHTML += `
-      <div class="unconnected-family">
+      if (familyTreeHistory.length > 0) {
+        const previousId = familyTreeHistory.pop();
+        renderFamilyTree(previousId);
+      }
 
-        <h3>Other Family Members</h3>
+    });
 
-        <p>These members are not connected to the displayed family branches yet.</p>
+  // Return to Desta
+  document.getElementById("tree-home-button")
+    .addEventListener("click", () => {
 
-        <div class="family-couple">
+      familyTreeHistory = [];
+      renderFamilyTree(root.id);
 
-          ${unconnected.map(member =>
-            memberCard(member, "Not connected")
-          ).join("")}
+    });
 
-        </div>
+  // Open the selected person's children
+  container.querySelectorAll("[data-tree-person]")
+    .forEach(button => {
 
-      </div>
-    `;
-  }
+      button.addEventListener("click", () => {
+
+        const selectedId = button.dataset.treePerson;
+
+        if (selectedId === currentPerson.id) return;
+
+        familyTreeHistory.push(currentPerson.id);
+
+        renderFamilyTree(selectedId);
+
+      });
+
+    });
 }
 
 // =====================================

@@ -397,25 +397,28 @@ createdAt: existing
     }
   }
 
-  // Save the member
-  if (existing) {
-    Object.assign(existing, member);
-  } else {
-    members.push(member);
-  }
+  // Save the previous spouse ID before updating
+const previousSpouseId = existing
+  ? existing.spouseId
+  : "";
 
-  // Remove the previous spouse connection if it changed
-  const previousSpouse = existing
-    ? getMember(existing.spouseId)
-    : null;
+// Save the member
+if (existing) {
+  Object.assign(existing, member);
+} else {
+  members.push(member);
+}
 
-  if (
-    previousSpouse &&
-    previousSpouse.id !== spouseId &&
-    previousSpouse.spouseId === member.id
-  ) {
-    previousSpouse.spouseId = "";
-  }
+// Remove the previous spouse connection if it changed
+const previousSpouse = getMember(previousSpouseId);
+
+if (
+  previousSpouse &&
+  previousSpouse.id !== spouseId &&
+  previousSpouse.spouseId === member.id
+) {
+  previousSpouse.spouseId = "";
+}
 
   // Connect new spouse in both directions
   if (spouseId) {
@@ -818,7 +821,8 @@ let familyTreeHistory = [];
 
 function getMainFamilyRoot() {
   const desta = members.find(member =>
-    getFullName(member).trim().toLowerCase() === "desta"
+    (member.firstName || "").trim().toLowerCase() === "desta" ||
+    getFullName(member).trim().toLowerCase().startsWith("desta ")
   );
 
   if (desta) return desta;
@@ -879,6 +883,7 @@ function createTreeMemberCard(member) {
 }
 
 // Display one person's direct children
+
 function renderFamilyTree(personId = null) {
   const container = document.getElementById("family-tree");
 
@@ -891,25 +896,52 @@ function renderFamilyTree(personId = null) {
       <div class="empty-state">
         <div>🌳</div>
         <h3>Your family tree is waiting</h3>
-        <p>Add Desta first, then connect his children using the father and mother fields.</p>
+        <p>Add your grandfather first.</p>
       </div>
     `;
     return;
   }
 
-  const currentPerson = personId
-    ? getMember(personId)
-    : root;
+  // FIRST SCREEN: Show only the family root
+  if (!personId) {
+    familyTreeHistory = [];
+
+    container.innerHTML = `
+      <div class="family-tree-navigation">
+
+        <div class="tree-current-person">
+          <h3>Start Exploring Your Family</h3>
+          <p class="tree-description">
+            Click your grandfather to see his children.
+          </p>
+        </div>
+
+        <div class="tree-generation">
+          ${createTreeMemberCard(root)}
+        </div>
+
+      </div>
+    `;
+
+    container.querySelectorAll("[data-tree-person]")
+      .forEach(button => {
+        button.addEventListener("click", () => {
+          renderFamilyTree(root.id);
+        });
+      });
+
+    return;
+  }
+
+  // SELECTED PERSON: Show only this person's children
+  const currentPerson = getMember(personId);
 
   if (!currentPerson) {
-    familyTreeHistory = [];
-    renderFamilyTree(root.id);
+    renderFamilyTree();
     return;
   }
 
   const children = getTreeChildren(currentPerson.id);
-
-  const isRoot = currentPerson.id === root.id;
 
   container.innerHTML = `
     <div class="family-tree-navigation">
@@ -950,9 +982,7 @@ function renderFamilyTree(personId = null) {
 
           <h2>${escapeHTML(getFullName(currentPerson))}</h2>
 
-          <p>
-            ${isRoot ? "First Grandfather / Family Root" : "Selected Family Member"}
-          </p>
+          <p>Selected Family Member</p>
 
         </div>
 
@@ -965,8 +995,8 @@ function renderFamilyTree(personId = null) {
         <p class="tree-description">
           ${
             children.length
-              ? "Select a person below to view only their children."
-              : "No children have been connected to this person yet."
+              ? "Click a child to explore their family branch."
+              : "No children connected to this person yet."
           }
         </p>
 
@@ -983,7 +1013,7 @@ function renderFamilyTree(personId = null) {
               <div class="empty-state">
                 <div>👨‍👩‍👧‍👦</div>
                 <h3>No children found</h3>
-                <p>Add this person's children and select their name as the father or mother.</p>
+                <p>Add this person's children and connect them using the father or mother field.</p>
               </div>
             `
         }
@@ -993,44 +1023,35 @@ function renderFamilyTree(personId = null) {
     </div>
   `;
 
-  // Back to previous generation
+  // Back button
   document.getElementById("tree-back-button")
     .addEventListener("click", () => {
-
       if (familyTreeHistory.length > 0) {
         const previousId = familyTreeHistory.pop();
         renderFamilyTree(previousId);
       }
-
     });
 
-  // Return to Desta
+  // Home button
   document.getElementById("tree-home-button")
     .addEventListener("click", () => {
-
       familyTreeHistory = [];
-      renderFamilyTree(root.id);
-
+      renderFamilyTree();
     });
 
-  // Open the selected person's children
+  // Open a child's branch
   container.querySelectorAll("[data-tree-person]")
     .forEach(button => {
-
       button.addEventListener("click", () => {
-
         const selectedId = button.dataset.treePerson;
 
-        if (selectedId === currentPerson.id) return;
-
         familyTreeHistory.push(currentPerson.id);
-
         renderFamilyTree(selectedId);
-
       });
-
     });
 }
+
+  
 
 // =====================================
 // 12. FAMILY TIMELINE
